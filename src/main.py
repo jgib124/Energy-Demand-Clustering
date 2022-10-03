@@ -1,8 +1,11 @@
 """Command Line Interface for clustering program"""
 
-import click
 import sys
 import os
+import click
+import pandas as pd
+
+from clean import create_demand_df
 
 @click.command()
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory")
@@ -31,17 +34,25 @@ def main(input_dir, min_k, max_k, algo):
             print(f'ERROR: algo must be one of the specified values ["KMeans", "MST"]. Input "{algo}" is not valid.')
             sys.exit(1)
 
+        # loop through each data set in the data directory
+        for filename in os.listdir(input_path):
+            # create path for each file name
+            if not filename.endswith('csv'): continue
+            file_path = os.path.join(input_path, filename)
+
+            # read in raw data to a dataframe
+            raw_data = pd.read_csv(file_path)
         
-        # TODO: create the df_demand pandas DataFrame with hour as column, row as date, and value as demand
-        # df_demand = create_demand_df()
+            # create the df_demand pandas DataFrame with hour as column, row as date, and value as demand
+            df_demand = create_demand_df(raw_data)
 
-        # TODO: call a clustering function based on algo
-        # if algo=='KMeans': df_clusters = kmeans_clustering()
-        # else: df_clusters = mst_clustering()
+            # TODO: call a clustering function based on algo
+            # if algo == 'KMeans': df_clusters = kmeans_clustering()
+            # else: df_clusters = mst_clustering()
 
-        # TODO: analyze the created clusters: day type distribution, cluster homogeniety
-        # output analysis graphs to an image and data to a csv?
-        # analyze_clusters(df_clusters)
+            # TODO: analyze the created clusters: day type distribution, cluster homogeniety
+            # output analysis graphs to an image and data to a csv?
+            # analyze_clusters(df_clusters)
 
         print(input_dir, min_k, max_k, algo)
 
