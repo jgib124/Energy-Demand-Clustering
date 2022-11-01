@@ -55,9 +55,10 @@ def kmeans_clustering(df, min_k, max_k, ba, output_path):
     
     df['cluster'] = opt_kmeans.labels_
 
-    # print(df)
+    centroids = pd.DataFrame(opt_kmeans.cluster_centers_)
+    centroids = centroids.T
 
-    return df
+    return df, centroids, opt_k
 
 
 

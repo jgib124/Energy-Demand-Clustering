@@ -57,13 +57,16 @@ def main(input_dir, output_dir, min_k, max_k, algo):
             df_demand = create_demand_df(raw_data)
 
             # call requested clustering algorithm
-            df_clusters = None            
-            if algo == 'KMeans': df_clusters = kmeans_clustering(df_demand, min_k, max_k, name, output_path)
+            df_clusters = None
+            centroids = None         
+            chosen_k = None   
+    
+            if algo == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_demand, min_k, max_k, name, output_path)
             # TODO: else: df_clusters = mst_clustering()
 
             # TODO: analyze the created clusters: day type distribution, cluster homogeniety
             # output analysis graphs to an image and data to a csv?
-            analyze_df(df_clusters, name, output_path)
+            analyze_df(df_clusters, centroids, chosen_k, name, output_path)
             
 
             print(algo, input_dir, output_dir)
