@@ -8,6 +8,7 @@ import pandas as pd
 
 from clean import create_demand_df
 from clustering import kmeans_clustering
+from analysis import analyze_df
 
 @click.command()
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory")
@@ -55,13 +56,14 @@ def main(input_dir, output_dir, min_k, max_k, algo):
             # create the df_demand pandas DataFrame with hour as column, row as date, and value as demand
             df_demand = create_demand_df(raw_data)
 
-            # TODO: call a clustering function based on algo
+            # call requested clustering algorithm
+            df_clusters = None            
             if algo == 'KMeans': df_clusters = kmeans_clustering(df_demand, min_k, max_k, name, output_path)
-            # else: df_clusters = mst_clustering()
+            # TODO: else: df_clusters = mst_clustering()
 
             # TODO: analyze the created clusters: day type distribution, cluster homogeniety
             # output analysis graphs to an image and data to a csv?
-            # analyze_clusters(df_clusters)
+            analyze_df(df_clusters, name, output_path)
             
 
             print(algo, input_dir, output_dir)

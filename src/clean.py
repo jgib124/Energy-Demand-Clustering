@@ -14,5 +14,7 @@ def create_demand_df(df):
     df_dropped = df.drop(["raw demand (MW)", "category", "forecast demand (MW)", "date_time"], axis=1)
     df_demand = df_dropped.pivot(index = "date", columns = "hour", values = "cleaned demand (MW)")
 
+    df_demand.index = pd.to_datetime(df_demand.index)
+
     # return the pivoted df
     return df_demand

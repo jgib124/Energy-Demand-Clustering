@@ -22,6 +22,10 @@ def kmeans_clustering(df, min_k, max_k, ba, output_path):
 
         # Davies Boulding score
         cluster_stats['DB'][k] = davies_bouldin_score(df, kmeans.labels_)
+        db = cluster_stats['Silhouette'][k]
+
+        print(f'{ba} KMeans k = {k}, DB = { db }')
+
 
         
     plt.plot(cluster_stats['DB'], label='Davies-Bouldin Score')
@@ -45,13 +49,13 @@ def kmeans_clustering(df, min_k, max_k, ba, output_path):
     # return the optimal clustered demand
     opt_k = cluster_stats.loc[cluster_stats['DB'] == cluster_stats['DB'].min()].index[0]
 
-    print(ba, opt_k)
+    print(f'{ba} Optimal K: {opt_k}')
 
     opt_kmeans = KMeans(n_clusters=opt_k, random_state=randint(0, 1000)).fit(df)
     
     df['cluster'] = opt_kmeans.labels_
 
-    print(df)
+    # print(df)
 
     return df
 
