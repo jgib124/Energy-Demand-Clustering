@@ -72,7 +72,7 @@ def main(input_dir, output_dir, min_k, max_k, algo):
             print(algo, input_dir, output_dir)
 
     except Exception as e:
-        print('something is fucked up: \n\n', traceback.format_exc())
+        print('something is messed up: \n\n', traceback.format_exc())
 
 
 if __name__ == "__main__":
