@@ -15,7 +15,8 @@ from analysis import analyze_df
 @click.option('--output_dir', '-o', default='outputs', type=click.Path(dir_okay=True), help="Output directory")
 @click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2')
 @click.option('--max_k', '-k', default=25, type=int, help='Maximum number of clusters, must be >2')
-@click.option('--algo', '-a', default='KMeans', type=str, help="Algorithm used for clustering: ['Kmeans', 'MST']")
+@click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['Kmeans']")
+@click.option('--classification', '-l', default='Likelihood', type=str, help="Algorithm used for classification: ['Likelihood']")
 def main(input_dir, output_dir, min_k, max_k, algo):
     try:
 
@@ -50,6 +51,8 @@ def main(input_dir, output_dir, min_k, max_k, algo):
             file_path = os.path.join(input_path, filename)
             name = filename.split('.')[0]
 
+            print('\n\n')
+
             # read in raw data to a dataframe
             raw_data = pd.read_csv(file_path)
         
@@ -68,11 +71,9 @@ def main(input_dir, output_dir, min_k, max_k, algo):
             # output analysis graphs to an image and data to a csv?
             analyze_df(df_clusters, centroids, chosen_k, name, output_path)
             
-
-            print(algo, input_dir, output_dir)
-
     except Exception as e:
         print('something is messed up: \n\n', traceback.format_exc())
+
 
 
 if __name__ == "__main__":

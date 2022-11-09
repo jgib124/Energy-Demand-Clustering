@@ -49,15 +49,18 @@ def calc_day_type(df_clusters):
 
     return df_clusters
 
+
 def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
     # similar to 'all_clusters_analysis.png'
     # day type histogram per cluster & scatterplot of demand profile
 
     df = calc_day_type(df_clusters)
-    # print(df)
 
-    fig = plt.figure(figsize=(20, 20))
-    gs = GridSpec(chosen_k//4 + 1, 4, figure=fig)
+    # Two graphs per cluster
+    # Can have 2 graphs, 1 cluster per row
+    # plt.rcParams.update({'font.size': 16})
+    fig = plt.figure(figsize=(20, 12))
+    gs = GridSpec(chosen_k, 2, figure=fig)
 
     '''
     in each graph:
@@ -69,36 +72,37 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
 
 
     '''
-    for (gs_idx, cluster_num) in zip(range(0, chosen_k*2, 2), range(chosen_k)):
+    for cluster_num, gs_idx in zip(range(chosen_k), range(0, 2*chosen_k, 2)):
         # gs_idx is the index for gridspec
         # cluster_num is the cluster label being investigated
 
         sub_arr = df.loc[df['cluster'] == cluster_num]
 
-        print(sub_arr)
-        print(sub_arr.columns)
-
         color = cm.nipy_spectral(np.arange(8).astype(float)/8)
 
         day_counts = pd.DataFrame(sub_arr['day type'].value_counts())
         day_counts.columns = ['count']
-        day_counts.reset_index(inplace=True)
 
+        gs_bar_idx = gs_idx
+        gs_scatter_idx = gs_idx + 1
 
-        ax = fig.add_subplot(gs[gs_idx])
+        ax = fig.add_subplot(gs[gs_bar_idx])
         ax.barh(y=day_counts.index, width=day_counts['count'], color=color)
         ax.set_title(f'Cluster {cluster_num}')
 
-        ax2 = fig.add_subplot(gs[gs_idx + 1])
-        sub_arr.drop(['cluster', 'day type'], axis=1, inplace=True)
+        ax2 = fig.add_subplot(gs[gs_scatter_idx])
+        ax2.grid()
+        sub_arr = sub_arr.drop(['cluster', 'day type'], axis=1)
         sub_arr.reset_index(inplace=True)
         melted = sub_arr.melt(id_vars='date')
         ax2.scatter(melted["hour"], melted["value"], alpha=0.05)
-        ax2.plot(centroids[cluster_num][0:24], '.-', color='orange')
+        ax2.plot(centroids[cluster_num][0:24], 'o-', color='orange', linewidth=2.0)
         ax2.set_title(f'Number Profiles: {len(sub_arr)}')
         ax2.set_ylabel('MW')
         ax2.set_xlabel('Hour of Day')
 
     fig.tight_layout()
     fig.savefig(f'{output_path}/{name}/all_clusters_analysis', facecolor='white', transparent=False)
-    fig.close()
+    plt.close('all')
+
+    print(f'{name} Analysis Graph Generated at: {output_path}/{name}/all_clusters_analysis')

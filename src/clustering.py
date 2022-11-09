@@ -43,8 +43,10 @@ def kmeans_clustering(df, min_k, max_k, ba, output_path):
 
     plt.savefig(f'{ba_path}/db_scores')
     plt.close()
+    print(f'{ba} Cluster Validity Graph Generated at: {ba_path}/db_scores')
 
     cluster_stats.to_csv(f'{ba_path}/cluster_stats')
+    print(f'{ba} Cluster Stats written to: {ba_path}/cluster_stats')
 
     # return the optimal clustered demand
     opt_k = cluster_stats.loc[cluster_stats['DB'] == cluster_stats['DB'].min()].index[0]
