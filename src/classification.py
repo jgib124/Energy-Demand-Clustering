@@ -1,12 +1,3 @@
-'''
-1. get the clustered data
-2. for each cluster
-    - get the peak value from each day
-    - create a KDE for those peak values
-    - get the PDF for that value in this distribution
-3. Return the cluster that results in the highest PDF value for the input peak demand
-'''
-
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import numpy as np
