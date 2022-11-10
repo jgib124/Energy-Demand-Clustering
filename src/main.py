@@ -2,6 +2,7 @@
 
 import sys
 import os
+import json
 import click
 import traceback
 import pandas as pd
@@ -9,6 +10,7 @@ import pandas as pd
 from clean import create_demand_df
 from clustering import kmeans_clustering
 from analysis import analyze_df
+from classification import pdf_classification
 
 @click.command()
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory")
@@ -16,7 +18,7 @@ from analysis import analyze_df
 @click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2')
 @click.option('--max_k', '-k', default=25, type=int, help='Maximum number of clusters, must be >2')
 @click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['Kmeans']")
-@click.option('--classification', '-l', default='Likelihood', type=str, help="Algorithm used for classification: ['Likelihood']")
+@click.option('--classification', '-l', default='PDF', type=str, help="Algorithm used for classification: ['PDF']")
 def main(input_dir, output_dir, min_k, max_k, clustering, classification):
     try:
 
@@ -35,7 +37,7 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification):
             print(f'ERROR: min_k must be >2 in order for any clusters to form. Input "{min_k}" is not valid.')  
             sys.exit(1)
 
-        if algo not in ['KMeans', 'MST']:
+        if clustering not in ['KMeans', 'MST']:
             print(f'ERROR: algo must be one of the specified values ["KMeans", "MST"]. Input "{algo}" is not valid.')
             sys.exit(1)
 
@@ -43,6 +45,10 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification):
         output_path = os.path.join(os.getcwd(), output_dir)
         if not os.path.exists(output_path):
             os.mkdir(output_path)
+
+        # Get the peak demand predictions
+        with open(f'{input_path}/peak.json') as f:
+            peaks = json.load(f)
 
         # loop through each data set in the data directory
         for filename in os.listdir(input_path):
@@ -64,14 +70,17 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification):
             centroids = None         
             chosen_k = None   
     
-            if algo == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_demand, min_k, max_k, name, output_path)
+            if clustering == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_demand, min_k, max_k, name, output_path)
             # TODO: else: df_clusters = mst_clustering()
 
             # TODO: analyze the created clusters: day type distribution, cluster homogeniety
             # output analysis graphs to an image and data to a csv?
             analyze_df(df_clusters, centroids, chosen_k, name, output_path)
 
-            # if classification == 'Likelihood': 
+            cluster_chosen = None
+            if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks, chosen_k, name, output_path)
+
+            print(f'{name}: Cluster {cluster_chosen} chosen for Peak Demand = {peaks[name]} MW')
             
     except Exception as e:
         print('something is messed up: \n\n', traceback.format_exc())
