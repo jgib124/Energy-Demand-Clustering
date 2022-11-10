@@ -17,7 +17,7 @@ from analysis import analyze_df
 @click.option('--max_k', '-k', default=25, type=int, help='Maximum number of clusters, must be >2')
 @click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['Kmeans']")
 @click.option('--classification', '-l', default='Likelihood', type=str, help="Algorithm used for classification: ['Likelihood']")
-def main(input_dir, output_dir, min_k, max_k, algo):
+def main(input_dir, output_dir, min_k, max_k, clustering, classification):
     try:
 
         # Handle errors in commmand line input
@@ -70,6 +70,8 @@ def main(input_dir, output_dir, min_k, max_k, algo):
             # TODO: analyze the created clusters: day type distribution, cluster homogeniety
             # output analysis graphs to an image and data to a csv?
             analyze_df(df_clusters, centroids, chosen_k, name, output_path)
+
+            # if classification == 'Likelihood': 
             
     except Exception as e:
         print('something is messed up: \n\n', traceback.format_exc())
