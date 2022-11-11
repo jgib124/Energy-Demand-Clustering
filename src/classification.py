@@ -23,13 +23,16 @@ def pdf_classification(df, peak, chosen_k, name, output_path):
         ax[k//2, k%2].legend(loc='upper right')
         ax[k//2, k%2].set_title(f'Cluster {k}')
 
+        ax[k//2, k%2].set_xlabel("Demand (MW)")
+        ax[k//2, k%2].set_ylabel("Density")
+
         peak_pdf = kde.pdf(peak)
 
         if peak_pdf > max_pdf_seen:
             max_pdf_seen = peak_pdf
             best_cluster = k
 
-        print(f'{name} Cluster {k} has PDF = {peak_pdf}')
+        print(f'{name} Cluster {k} has Density = {peak_pdf} @ {peak} MW')
 
     fig.tight_layout()
     plt.savefig(f'{output_path}/{name}/cluster_pdfs', facecolor='white', transparent=False)

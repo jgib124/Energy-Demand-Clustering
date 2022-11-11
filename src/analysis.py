@@ -96,7 +96,7 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
         sub_arr.reset_index(inplace=True)
         melted = sub_arr.melt(id_vars='date')
         ax2.scatter(melted["hour"], melted["value"], alpha=0.05, color='yellowgreen')
-        ax2.plot(centroids[cluster_num][0:24], 'D-', color='cornflowerblue', linewidth=2.0)
+        ax2.plot(centroids[cluster_num][0:24], 'd-', color='cornflowerblue', linewidth=2.0)
         ax2.set_title(f'Number Profiles: {len(sub_arr)}')
         ax2.set_ylabel('MW')
         ax2.set_xlabel('Hour of Day')
