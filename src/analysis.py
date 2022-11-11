@@ -59,8 +59,8 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
     # Two graphs per cluster
     # Can have 2 graphs, 1 cluster per row
     # plt.rcParams.update({'font.size': 16})
-    fig = plt.figure(figsize=(20, 12))
-    gs = GridSpec(chosen_k, 2, figure=fig)
+    fig = plt.figure(figsize=(25, 8))
+    gs = GridSpec(chosen_k//2 + 1, 4, figure=fig)
 
     '''
     in each graph:
@@ -86,17 +86,17 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
         gs_bar_idx = gs_idx
         gs_scatter_idx = gs_idx + 1
 
-        ax = fig.add_subplot(gs[gs_bar_idx])
+        ax = fig.add_subplot(gs[cluster_num//2, gs_bar_idx % 4])
         ax.barh(y=day_counts.index, width=day_counts['count'], color=color)
         ax.set_title(f'Cluster {cluster_num}')
 
-        ax2 = fig.add_subplot(gs[gs_scatter_idx])
+        ax2 = fig.add_subplot(gs[cluster_num//2, gs_scatter_idx % 4])
         ax2.grid()
         sub_arr = sub_arr.drop(['cluster', 'day type'], axis=1)
         sub_arr.reset_index(inplace=True)
         melted = sub_arr.melt(id_vars='date')
-        ax2.scatter(melted["hour"], melted["value"], alpha=0.05)
-        ax2.plot(centroids[cluster_num][0:24], 'o-', color='orange', linewidth=2.0)
+        ax2.scatter(melted["hour"], melted["value"], alpha=0.05, color='yellowgreen')
+        ax2.plot(centroids[cluster_num][0:24], 'D-', color='cornflowerblue', linewidth=2.0)
         ax2.set_title(f'Number Profiles: {len(sub_arr)}')
         ax2.set_ylabel('MW')
         ax2.set_xlabel('Hour of Day')

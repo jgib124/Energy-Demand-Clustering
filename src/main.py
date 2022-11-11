@@ -78,7 +78,7 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification):
             analyze_df(df_clusters, centroids, chosen_k, name, output_path)
 
             cluster_chosen = None
-            if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks, chosen_k, name, output_path)
+            if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks[name], chosen_k, name, output_path)
 
             print(f'{name}: Cluster {cluster_chosen} chosen for Peak Demand = {peaks[name]} MW')
             

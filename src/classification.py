@@ -2,10 +2,9 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import numpy as np
 
-def pdf_classification(df, peaks, chosen_k, name, output_path):
+def pdf_classification(df, peak, chosen_k, name, output_path):
 
     fig, ax = plt.subplots(chosen_k//2 + 1, 2, figsize=(10, 8))
-    peak = peaks[name]
 
     max_pdf_seen = 0
     best_cluster = None
