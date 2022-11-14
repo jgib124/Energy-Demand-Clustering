@@ -15,9 +15,9 @@ from classification import pdf_classification
 @click.command()
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory")
 @click.option('--output_dir', '-o', default='outputs', type=click.Path(dir_okay=True), help="Output directory")
-@click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2')
-@click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2')
-@click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['Kmeans']")
+@click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
+@click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
+@click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['KMeans']")
 @click.option('--classification', '-l', default='PDF', type=str, help="Algorithm used for classification: ['PDF']")
 def main(input_dir, output_dir, min_k, max_k, clustering, classification):
     try:
