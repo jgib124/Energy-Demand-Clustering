@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 import numpy as np
 
-def pdf_classification(df, peak, chosen_k, name, output_path):
+def pdf_classification(df, peak, tolerance, chosen_k, name, output_path):
 
     fig, ax = plt.subplots(chosen_k//2 + 1, 2, figsize=(10, 8))
 
@@ -41,3 +41,31 @@ def pdf_classification(df, peak, chosen_k, name, output_path):
     print(f'{name} PDF Classification Graph written to: {output_path}/{name}/cluster_pdfs')
 
     return best_cluster
+
+
+def get_sample_load_profiles(df, peak, tolerance, cluster_chosen, name, output_path):
+    cluster_loads = df.loc[df['cluster'] == cluster_chosen]
+    cluster_loads = cluster_loads.drop(['cluster', 'day type'], axis=1)
+
+    peaks = cluster_loads.max(axis=1)
+    avg_peak = np.mean(peaks)
+
+    lower_bound = peak - (tolerance * avg_peak)
+    upper_bound = peak + (tolerance * avg_peak)
+
+    cluster_loads['peak'] = peaks
+
+    sample_loads = cluster_loads.loc[cluster_loads['peak'].between(lower_bound, upper_bound)]
+
+    sample_loads = sample_loads.drop('peak', axis=1)
+
+    sample_loads.reset_index(inplace=True)
+    melted = sample_loads.melt(id_vars='date')
+    plt.plot(melted["hour"], melted["value"], 'o', alpha=0.05, color='yellowgreen')
+
+    print(f'{len(sample_loads)} Sample Loads')
+
+    plt.title(f'Sample Loads for Peak={peak} MW')
+    plt.savefig(f'{output_path}/{name}/sample_loads', facecolor='white', transparent=False)
+
+    return sample_loads    

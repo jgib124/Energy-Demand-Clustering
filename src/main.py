@@ -10,7 +10,7 @@ import pandas as pd
 from clean import create_demand_df
 from clustering import kmeans_clustering
 from analysis import analyze_df
-from classification import pdf_classification
+from classification import pdf_classification, get_sample_load_profiles
 
 @click.command()
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory")
@@ -19,8 +19,21 @@ from classification import pdf_classification
 @click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
 @click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['KMeans']")
 @click.option('--classification', '-l', default='PDF', type=str, help="Algorithm used for classification: ['PDF']")
-def main(input_dir, output_dir, min_k, max_k, clustering, classification):
+@click.option('--tolerance', '-t', default=0.05, type=float, help="Percentage tolerance of peak value used to return sample load profiles")
+def main(input_dir, output_dir, min_k, max_k, clustering, classification, tolerance):
     try:
+
+        # TODO: separate clustering and classification functionality 
+        # Returning load profiles based on classificaiton: centroid, all possible load profiles, etc.
+        #  
+        # Subset of the cluster that preserves the peak value in it's load profiles 
+        # --> return subset of cluster with peak within some range of the predicted peak
+        # 1. centroid scaled
+        # 2. near the peak scaled (within some tolerance)
+        # 3. scale all cluster load profiles to the predicted peak (maybe not)
+
+        # Need to be able to run classification and clustering algorithms separately
+        
 
         # Handle errors in commmand line input
         input_path = os.path.join(os.getcwd(), input_dir)
@@ -78,7 +91,9 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification):
             analyze_df(df_clusters, centroids, chosen_k, name, output_path)
 
             cluster_chosen = None
-            if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks[name], chosen_k, name, output_path)
+            if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks[name], tolerance, chosen_k, name, output_path)
+
+            get_sample_load_profiles(df_clusters, peaks[name], tolerance, cluster_chosen, name, output_path)
 
             print(f'{name}: Cluster {cluster_chosen} chosen for Peak Demand = {peaks[name]} MW')
             
