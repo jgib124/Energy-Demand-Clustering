@@ -19,22 +19,10 @@ from classification import pdf_classification, get_sample_load_profiles
 @click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
 @click.option('--clustering', '-c', default='KMeans', type=str, help="Algorithm used for clustering: ['KMeans']")
 @click.option('--classification', '-l', default='PDF', type=str, help="Algorithm used for classification: ['PDF']")
-@click.option('--tolerance', '-t', default=0.05, type=float, help="Percentage tolerance of peak value used to return sample load profiles")
-def main(input_dir, output_dir, min_k, max_k, clustering, classification, tolerance):
+@click.option('--percentile', '-p', default=2.5, type=float, help="Percentile range of peak values tryurned from sampling function")
+@click.option('--output_tag', '-x', default=None, type=str, help="Tag string added to all outputs for this run")
+def main(input_dir, output_dir, min_k, max_k, clustering, classification, percentile, output_tag):
     try:
-
-        # TODO: separate clustering and classification functionality 
-        # Returning load profiles based on classificaiton: centroid, all possible load profiles, etc.
-        #  
-        # Subset of the cluster that preserves the peak value in it's load profiles 
-        # --> return subset of cluster with peak within some range of the predicted peak
-        # 1. centroid scaled
-        # 2. near the peak scaled (within some tolerance)
-        # 3. scale all cluster load profiles to the predicted peak (maybe not)
-
-        # Need to be able to run classification and clustering algorithms separately
-        
-
         # Handle errors in commmand line input
         input_path = os.path.join(os.getcwd(), input_dir)
         if not os.path.exists(input_path):
@@ -51,7 +39,7 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification, tolera
             sys.exit(1)
 
         if clustering not in ['KMeans', 'MST']:
-            print(f'ERROR: algo must be one of the specified values ["KMeans", "MST"]. Input "{algo}" is not valid.')
+            print(f'ERROR: algo must be one of the specified values ["KMeans", "MST"]. Input "{clustering}" is not valid.')
             sys.exit(1)
 
         # Create output path if it does not exist
@@ -70,7 +58,8 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification, tolera
             file_path = os.path.join(input_path, filename)
             name = filename.split('.')[0]
 
-            print('\n\n')
+            if not os.path.exists(f'{output_path}/{name}'):
+                os.mkdir(f'{output_path}/{name}')
 
             # read in raw data to a dataframe
             raw_data = pd.read_csv(file_path)
@@ -78,24 +67,26 @@ def main(input_dir, output_dir, min_k, max_k, clustering, classification, tolera
             # create the df_demand pandas DataFrame with hour as column, row as date, and value as demand
             df_demand = create_demand_df(raw_data)
 
+            # Get all load profiles with a peak demand value within our specified tolerance band (%)
+            df_samples = get_sample_load_profiles(df_demand, peaks[name], percentile, name, output_path, output_tag)
+
+            # Cluster the sample load profiles that were returned
             # call requested clustering algorithm
             df_clusters = None
             centroids = None         
             chosen_k = None   
-    
-            if clustering == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_demand, min_k, max_k, name, output_path)
+
+            # Cluster the sample load profiles that were returned
+            if clustering == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_samples, min_k, max_k, name, output_path, output_tag)
             # TODO: else: df_clusters = mst_clustering()
 
             # TODO: analyze the created clusters: day type distribution, cluster homogeniety
             # output analysis graphs to an image and data to a csv?
-            analyze_df(df_clusters, centroids, chosen_k, name, output_path)
+            analyze_df(df_clusters, centroids, chosen_k, name, output_path, output_tag)
 
-            cluster_chosen = None
-            if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks[name], tolerance, chosen_k, name, output_path)
-
-            get_sample_load_profiles(df_clusters, peaks[name], tolerance, cluster_chosen, name, output_path)
-
-            print(f'{name}: Cluster {cluster_chosen} chosen for Peak Demand = {peaks[name]} MW')
+            # TODO: is below necessary with the new approach?
+            # cluster_chosen = None
+            # if classification == 'PDF': cluster_chosen = pdf_classification(df_clusters, peaks[name], tolerance, chosen_k, name, output_path)
             
     except Exception as e:
         print('something is messed up: \n\n', traceback.format_exc())

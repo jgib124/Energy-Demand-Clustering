@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, percentileofscore
 import numpy as np
 
 def pdf_classification(df, peak, tolerance, chosen_k, name, output_path):
@@ -43,29 +43,30 @@ def pdf_classification(df, peak, tolerance, chosen_k, name, output_path):
     return best_cluster
 
 
-def get_sample_load_profiles(df, peak, tolerance, cluster_chosen, name, output_path):
-    cluster_loads = df.loc[df['cluster'] == cluster_chosen]
-    cluster_loads = cluster_loads.drop(['cluster', 'day type'], axis=1)
-
-    peaks = cluster_loads.max(axis=1)
+def get_sample_load_profiles(df_demand, input_peak, percentile, name, output_path, output_tag):
+    peaks = df_demand.max(axis=1)
     avg_peak = np.mean(peaks)
 
-    lower_bound = peak - (tolerance * avg_peak)
-    upper_bound = peak + (tolerance * avg_peak)
+    # Peaks within +- quantile % 
+    input_peak_percentile = percentileofscore(peaks, input_peak)
 
-    cluster_loads['peak'] = peaks
+    lower_bound = input_peak_percentile - percentile
+    upper_bound = input_peak_percentile + percentile
 
-    sample_loads = cluster_loads.loc[cluster_loads['peak'].between(lower_bound, upper_bound)]
+    df_demand['percentile'] = percentileofscore(peaks, peaks)
 
-    sample_loads = sample_loads.drop('peak', axis=1)
+    sample_loads = df_demand.loc[df_demand["percentile"].between(lower_bound, upper_bound)]
 
-    sample_loads.reset_index(inplace=True)
-    melted = sample_loads.melt(id_vars='date')
+    sample_loads = sample_loads.drop('percentile', axis=1)
+
+    graph_df = sample_loads.reset_index()
+    melted = graph_df.melt(id_vars='date')
     plt.plot(melted["hour"], melted["value"], 'o', alpha=0.05, color='yellowgreen')
 
     print(f'{len(sample_loads)} Sample Loads')
 
-    plt.title(f'Sample Loads for Peak={peak} MW')
-    plt.savefig(f'{output_path}/{name}/sample_loads', facecolor='white', transparent=False)
+    plt.title(f'Sample Loads for Peak={input_peak} MW')
+    plt.savefig(f'{output_path}/{name}/{output_tag}{"_" if output_tag else ""}sample_loads', facecolor='white', transparent=False)
+    plt.close('all')
 
     return sample_loads    

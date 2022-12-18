@@ -50,7 +50,7 @@ def calc_day_type(df_clusters):
     return df_clusters
 
 
-def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
+def analyze_df(df_clusters, centroids, chosen_k, name, output_path, output_tag):
     # similar to 'all_clusters_analysis.png'
     # day type histogram per cluster & scatterplot of demand profile
 
@@ -78,7 +78,7 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
 
         sub_arr = df.loc[df['cluster'] == cluster_num]
 
-        color = cm.nipy_spectral(np.arange(8).astype(float)/8)
+        color = plt.colormaps['twilight'](np.arange(8).astype(float)/8)
 
         day_counts = pd.DataFrame(sub_arr['day type'].value_counts())
         day_counts.columns = ['count']
@@ -96,13 +96,13 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path):
         sub_arr.reset_index(inplace=True)
         melted = sub_arr.melt(id_vars='date')
         ax2.scatter(melted["hour"], melted["value"], alpha=0.05, color='yellowgreen')
-        ax2.plot(centroids[cluster_num][0:24], 'd-', color='cornflowerblue', linewidth=2.0)
-        ax2.set_title(f'Number Profiles: {len(sub_arr)}')
+        ax2.plot(centroids[cluster_num][0:24], '.-', color='cornflowerblue', linewidth=2.0)
+        ax2.set_title(f'Number Profiles: {len(sub_arr)}, Peak: {int(np.max(centroids[cluster_num][0:24]))} MW')
         ax2.set_ylabel('MW')
         ax2.set_xlabel('Hour of Day')
 
     fig.tight_layout()
-    fig.savefig(f'{output_path}/{name}/all_clusters_analysis', facecolor='white', transparent=False)
+    fig.savefig(f'{output_path}/{name}/{output_tag}{"_" if output_tag else ""}all_clusters_analysis', facecolor='white', transparent=False)
     plt.close('all')
 
-    print(f'{name} Analysis Graph Generated at: {output_path}/{name}/all_clusters_analysis')
+    print(f'{name} Analysis Graph Generated at: {output_path}/{name}/{output_tag}{"_" if output_tag else ""}all_clusters_analysis')

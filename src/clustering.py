@@ -9,7 +9,7 @@ from sklearn.metrics import silhouette_score, davies_bouldin_score
 from random import randint
 
 
-def kmeans_clustering(df, min_k, max_k, ba, output_path):
+def kmeans_clustering(df, min_k, max_k, ba, output_path, output_tag):
 
     # NOTE: the random state does not affect the clustering strongly in this application
     cluster_stats = pd.DataFrame(index=range(min_k, max_k), columns=["Silhouette", "DB"])
@@ -41,12 +41,12 @@ def kmeans_clustering(df, min_k, max_k, ba, output_path):
     if not os.path.exists(ba_path):
         os.mkdir(ba_path)
 
-    plt.savefig(f'{ba_path}/db_scores')
-    plt.close()
-    print(f'{ba} Cluster Validity Graph Generated at: {ba_path}/db_scores')
+    plt.savefig(f'{ba_path}/{output_tag}{"_" if output_tag else ""}db_scores')
+    plt.close("all")
+    print(f'{ba} Cluster Validity Graph Generated at: {ba_path}/{output_tag}{"_" if output_tag else ""}db_scores')
 
-    cluster_stats.to_csv(f'{ba_path}/cluster_stats')
-    print(f'{ba} Cluster Stats written to: {ba_path}/cluster_stats')
+    cluster_stats.to_csv(f'{ba_path}/{output_tag}{"_" if output_tag else ""}cluster_stats')
+    print(f'{ba} Cluster Stats written to: {ba_path}/{output_tag}{"_" if output_tag else ""}cluster_stats')
 
     # return the optimal clustered demand
     opt_k = cluster_stats.loc[cluster_stats['DB'] == cluster_stats['DB'].min()].index[0]
