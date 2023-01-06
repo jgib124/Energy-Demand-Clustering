@@ -59,14 +59,14 @@ def get_sample_load_profiles(df_demand, input_peak, percentile, name, output_pat
 
     sample_loads = sample_loads.drop('percentile', axis=1)
 
-    graph_df = sample_loads.reset_index()
-    melted = graph_df.melt(id_vars='date')
-    plt.plot(melted["hour"], melted["value"], 'o', alpha=0.05, color='yellowgreen')
+    # graph_df = sample_loads.reset_index()
+    # melted = graph_df.melt(id_vars='date')
+    # plt.plot(melted["hour"], melted["value"], 'o', alpha=0.05, color='yellowgreen')
 
     print(f'{len(sample_loads)} Sample Loads')
 
-    plt.title(f'Sample Loads for Peak={input_peak} MW')
-    plt.savefig(f'{output_path}/{name}/{output_tag}{"_" if output_tag else ""}sample_loads', facecolor='white', transparent=False)
-    plt.close('all')
+    # plt.title(f'Sample Loads for Peak={input_peak} MW')
+    # plt.savefig(f'{output_path}/{name}/{output_tag}{"_" if output_tag else ""}sample_loads', facecolor='white', transparent=False)
+    # plt.close('all')
 
     return sample_loads    
