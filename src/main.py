@@ -7,7 +7,7 @@ import click
 import traceback
 import pandas as pd
 
-from clean import create_demand_df
+from clean import clean_data
 from clustering import kmeans_clustering
 from analysis import analyze_df
 from classification import pdf_classification, get_sample_load_profiles
@@ -42,42 +42,45 @@ def main(input_dir, output_dir,
         # TODO: create callable functions for each segment of functionality (clean, cluster, analyze)
         # TODO: everything below needs to be reconfigured!!!
 
+        # Clean
+        if clean:
+           clean_data(input_path, output_path)
+
         # Get the peak demand predictions
         with open(f'{input_path}/peak.json') as f:
             peaks = json.load(f)
 
-        # loop through each data set in the data directory
-        demand_path = os.path.join(input_path, "demand")
-        temp_path = os.path.join(input_path, "temp")
-        for filename in os.listdir(demand_path):
-            # create path for each file name
-            if not filename.endswith('csv'): continue
-            file_path = os.path.join(input_path, filename)
-            name = filename.split('.')[0]
+        # # loop through each data set in the data directory
+        # temp_path = os.path.join(input_path, "temp")
+        # for filename in os.listdir(demand_path):
+        #     # create path for each file name
+        #     if not filename.endswith('csv'): continue
+        #     file_path = os.path.join(input_path, filename)
+        #     name = filename.split('.')[0]
 
-            if not os.path.exists(f'{output_path}/{name}'):
-                os.mkdir(f'{output_path}/{name}')
+        #     if not os.path.exists(f'{output_path}/{name}'):
+        #         os.mkdir(f'{output_path}/{name}')
 
-            # read in raw data to a dataframe
-            raw_data = pd.read_csv(file_path)
+        #     # read in raw data to a dataframe
+        #     raw_data = pd.read_csv(file_path)
         
-            # create the df_demand pandas DataFrame with hour as column, row as date, and value as demand
-            df_demand = create_demand_df(raw_data)
+        #     # create the df_demand pandas DataFrame with hour as column, row as date, and value as demand
+        #     df_demand = create_demand_df(raw_data)
 
-            # Get all load profiles with a peak demand value within our specified tolerance band (%)
-            df_samples = get_sample_load_profiles(df_demand, peaks[name], percentile, name, output_path, output_tag)
+        #     # Get all load profiles with a peak demand value within our specified tolerance band (%)
+        #     df_samples = get_sample_load_profiles(df_demand, peaks[name], percentile, name, output_path, output_tag)
 
-            # Cluster the sample load profiles that were returned
-            # call requested clustering algorithm
-            df_clusters = None
-            centroids = None         
-            chosen_k = None   
+        #     # Cluster the sample load profiles that were returned
+        #     # call requested clustering algorithm
+        #     df_clusters = None
+        #     centroids = None         
+        #     chosen_k = None   
 
-            # Cluster the sample load profiles that were returned
-            if clustering == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_samples, min_k, max_k, name, output_path, output_tag)
+        #     # Cluster the sample load profiles that were returned
+        #     if clustering == 'KMeans': df_clusters, centroids, chosen_k = kmeans_clustering(df_samples, min_k, max_k, name, output_path, output_tag)
 
-            # output analysis graphs to an image and data to a csv?
-            analyze_df(df_clusters, centroids, chosen_k, name, output_path, output_tag)
+        #     # output analysis graphs to an image and data to a csv?
+        #     analyze_df(df_clusters, centroids, chosen_k, name, output_path, output_tag)
 
             
     except Exception as e:
