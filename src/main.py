@@ -8,7 +8,7 @@ import traceback
 import pandas as pd
 
 from clean import clean_data
-from clustering import kmeans_clustering
+from clustering import classify_cluster, cluster_subset
 from analysis import analyze_df
 from classification import pdf_classification, get_sample_load_profiles
 from error_checking import error_check
@@ -17,7 +17,7 @@ from error_checking import error_check
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory for segment being run")
 @click.option('--output_dir', '-o', default='outputs', type=click.Path(dir_okay=True), help="Output directory for segment being run")
 @click.option('--clean', '-l', is_flag=True, help="Clean the given input and print to output directory")
-@click.option('--clustering', '-c', default=None, type=str, help="Algorithm used for clustering: ['KMeans']")
+@click.option('--clustering', '-c', default=None, type=str, help="Algorithm used for clustering: ['P', 'S']")
 @click.option('--analysis', '-a', default=None, type=str, help="Type of analysis done on final clusters: ['temp', 'day']")
 @click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
 @click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
@@ -44,7 +44,49 @@ def main(input_dir, output_dir,
 
         # Clean
         if clean:
-           clean_data(input_path, output_path)
+            # Reads raw data from input path (Demand - CSV, Temp - CSV)
+            # Writes cleaned data to output path
+            clean_data(input_path, output_path)
+
+        if clustering:
+            # Reads cleaned demand data and peaks from input path (Demand - CSV, Peaks - JSON)
+            # Writes clusters, centroids, and  Davies-Bouldin Score Graphs to output path 
+            # (Clusters - CSV, Centroids - CSV, DB Score (Graph) - PNG)
+
+            # TODO: need to change to only have input and output paths
+
+             # clean all demand and temp files in input directory
+            demand_in_path = os.path.join(input_path, "demand")
+            peaks_in_path = os.path.join(input_path, "peak.json")
+            cluster_out_path = os.path.join(output_path, "clusters")
+
+            if not os.path.exists(cluster_out_path):
+                os.mkdir(cluster_out_path)
+
+            f = open(peaks_in_path)
+            peaks = json.load(f)
+
+            for filename in os.listdir(demand_in_path):
+                # only concerned with CSVs here
+                if not filename.endswith('csv'): continue
+                file_path = os.path.join(demand_in_path, filename)
+                name = filename.split('.')[0]
+                peak = peaks[name]
+
+                # read in raw data to a dataframe
+                df_demand = pd.read_csv(file_path)
+
+                if clustering == 'P':
+                    classify_cluster(df_demand, peak, min_k,
+                     max_k, name, cluster_out_path, output_tag)
+
+                elif clustering == 'S':
+                    cluster_subset(df_demand, peak, percentile, 
+                     min_k, max_k, name, cluster_out_path, output_tag)
+            
+
+        if analysis:
+            assert False
 
         # Get the peak demand predictions
         with open(f'{input_path}/peak.json') as f:

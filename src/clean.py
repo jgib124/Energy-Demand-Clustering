@@ -36,25 +36,24 @@ def create_temp_df(df):
 
     df_temp['Temperature (F)'] = (1.8 * (temp_max - 273.15)) + 32
 
-    print(df_temp)
-
     return df_temp
 
 
 
 def clean_data(input_path, output_path):
     # clean all demand and temp files in input directory
-    demand_path = os.path.join(input_path, "demand")
-    for filename in os.listdir(demand_path):
+    demand_in_path = os.path.join(input_path, "demand")
+    demand_out_dir = os.path.join(output_path, "demand")
+
+    if not os.path.exists(demand_out_dir):
+        os.mkdir(demand_out_dir)
+
+    for filename in os.listdir(demand_in_path):
         # only concerned with CSVs here
         if not filename.endswith('csv'): continue
-        file_path = os.path.join(demand_path, filename)
-        name = filename.split('.')[0] + "_demand.csv"
-        output_name = os.path.join(output_path, name)
-
-        # create out directory 
-        if not os.path.exists(output_path):
-            os.mkdir(output_path)
+        file_path = os.path.join(demand_in_path, filename)
+        name = filename.split('.')[0] + ".csv"
+        output_name = os.path.join(demand_out_dir, name)
 
         # read in raw data to a dataframe
         raw_data = pd.read_csv(file_path)
@@ -64,18 +63,20 @@ def clean_data(input_path, output_path):
         df_demand.to_csv(output_name)
 
     if 'temp' in os.listdir(input_path):
-        temp_path = os.path.join(input_path, "temp")
-        for filename in os.listdir(temp_path):
+
+        temp_in_path = os.path.join(input_path, "temp")
+        temp_out_path = os.path.join(output_path, "temp")
+
+        if not os.path.exists(temp_out_path):
+            os.mkdir(temp_out_path)
+
+        for filename in os.listdir(temp_in_path):
             # only concerned with CSVs here
             if not filename.endswith('csv'): continue
-            file_path = os.path.join(temp_path, filename)
-            name = filename.split('.')[0] + "_temp.csv"
-            output_name = os.path.join(output_path, name)
+            file_path = os.path.join(temp_in_path, filename)
+            name = filename.split('-')[0] + ".csv"
+            output_name = os.path.join(temp_out_path, name)
             
-            # create out directory 
-            if not os.path.exists(output_path):
-                os.mkdir(output_path)
-
             # read in raw data to a dataframe
             raw_data = pd.read_csv(file_path)
     

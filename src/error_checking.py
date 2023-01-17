@@ -63,13 +63,13 @@ def error_check(input_dir, clean, clustering,
             sys.exit(1)
 
         # Check that the min and max together are valid:
-        if min_k < max_k:
+        if min_k > max_k:
             print("ERROR: min_k value must be less that or equal to max_k value.")
             sys.exit(1)
 
         # Check that a valid clustering algorithm has been chosen
-        if clustering not in ['KMeans']:
-            print(f'ERROR: algo must be one of the specified values ["KMeans"]. Input "{clustering}" is not valid.')
+        if clustering not in ['S', 'P']:
+            print(f'ERROR: algo must be one of the specified values ["S", "P"]. Input "{clustering}" is not valid.')
             sys.exit(1)
 
     # error checks for analysis

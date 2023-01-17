@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde, percentileofscore
 import numpy as np
 
-def pdf_classification(df, peak, tolerance, chosen_k, name, output_path):
+def pdf_classification(df, peak, chosen_k, name, output_path):
 
     fig, ax = plt.subplots(chosen_k//2 + 1, 2, figsize=(10, 8))
 
@@ -43,7 +43,8 @@ def pdf_classification(df, peak, tolerance, chosen_k, name, output_path):
     return best_cluster
 
 
-def get_sample_load_profiles(df_demand, input_peak, percentile, name, output_path, output_tag):
+def get_sample_load_profiles(df_demand, input_peak, percentile):
+
     peaks = df_demand.max(axis=1)
     avg_peak = np.mean(peaks)
 
