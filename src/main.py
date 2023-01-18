@@ -58,10 +58,9 @@ def main(input_dir, output_dir,
              # clean all demand and temp files in input directory
             demand_in_path = os.path.join(input_path, "demand")
             peaks_in_path = os.path.join(input_path, "peak.json")
-            cluster_out_path = os.path.join(output_path, "clusters")
 
-            if not os.path.exists(cluster_out_path):
-                os.mkdir(cluster_out_path)
+            if not os.path.exists(output_path):
+                os.mkdir(output_path)
 
             f = open(peaks_in_path)
             peaks = json.load(f)
@@ -78,19 +77,46 @@ def main(input_dir, output_dir,
 
                 if clustering == 'P':
                     classify_cluster(df_demand, peak, min_k,
-                     max_k, name, cluster_out_path, output_tag)
+                     max_k, name, output_path, output_tag)
 
                 elif clustering == 'S':
                     cluster_subset(df_demand, peak, percentile, 
-                     min_k, max_k, name, cluster_out_path, output_tag)
+                     min_k, max_k, name, output_path, output_tag)
             
 
         if analysis:
-            assert False
+            clusters_dir_path = os.path.join(input_path, "clusters")
+            centroids_dir_path = os.path.join(input_path, "centroids")
+            temps_dir_path = os.path.join(input_path, "temp")
 
-        # Get the peak demand predictions
-        with open(f'{input_path}/peak.json') as f:
-            peaks = json.load(f)
+            analysis_out_path = os.path.join(output_path, "analysis")
+
+            if not os.path.exists(analysis_out_path):
+                os.mkdir(analysis_out_path)
+
+            for filename in os.listdir(clusters_dir_path):
+                # only concerned with CSVs here
+                if not filename.endswith('csv'): continue
+                clusters_path = os.path.join(clusters_dir_path, filename)
+                centroids_path = os.path.join(centroids_dir_path, filename)
+                temps_path = os.path.join(temps_dir_path, filename)
+
+
+                name = filename.split('.')[0]
+
+                # read in raw data to a dataframe
+                df_clusters = pd.read_csv(clusters_path)
+                df_centroids = pd.read_csv(centroids_path)
+                df_temps = pd.read_csv(temps_path)
+
+                df_centroids.rename(columns={"Unnamed: 0" : "Cluster"}, inplace=True)
+
+                analyze_df(df_clusters, df_centroids, df_temps,
+                 len(df_centroids), name, analysis_out_path, output_tag)
+
+
+
+
 
         # # loop through each data set in the data directory
         # temp_path = os.path.join(input_path, "temp")

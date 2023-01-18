@@ -1,4 +1,6 @@
 from re import sub
+import os
+import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import pandas as pd
@@ -50,16 +52,23 @@ def calc_day_type(df_clusters):
     return df_clusters
 
 
-def analyze_df(df_clusters, centroids, chosen_k, name, output_path, output_tag):
+def analyze_df(df, centroids, temps, chosen_k, name, output_path, output_tag):
     # similar to 'all_clusters_analysis.png'
     # day type histogram per cluster & scatterplot of demand profile
-
-    df = calc_day_type(df_clusters)
 
     # Two graphs per cluster
     # Can have 2 graphs, 1 cluster per row
     # plt.rcParams.update({'font.size': 16})
-    fig = plt.figure(figsize=(25, 8))
+
+    fig = None
+
+    if chosen_k < 5:
+        fig = plt.figure(figsize=(15, 10))
+    elif chosen_k < 10:
+        fig = plt.figure(figsize=(20, 16))
+    elif chosen_k < 15:
+        fig = plt.figure(figsize=(40, 32))
+
     gs = GridSpec(chosen_k//2 + 1, 4, figure=fig)
 
     '''
@@ -77,32 +86,53 @@ def analyze_df(df_clusters, centroids, chosen_k, name, output_path, output_tag):
         # cluster_num is the cluster label being investigated
 
         sub_arr = df.loc[df['cluster'] == cluster_num]
+        dates = sub_arr['date']
 
-        color = plt.colormaps['twilight'](np.arange(8).astype(float)/8)
+        sub_arr = sub_arr.drop(['cluster', 'date'], axis=1)
+        sub_arr.columns = pd.MultiIndex.from_product([["Hour"], np.arange(0, 24)])
+        sub_arr['date'] = dates
 
-        day_counts = pd.DataFrame(sub_arr['day type'].value_counts())
-        day_counts.columns = ['count']
+        sub_temps = temps.loc[temps['date'].isin(dates)]
 
         gs_bar_idx = gs_idx
         gs_scatter_idx = gs_idx + 1
 
         ax = fig.add_subplot(gs[cluster_num//2, gs_bar_idx % 4])
-        ax.barh(y=day_counts.index, width=day_counts['count'], color=color)
-        ax.set_title(f'Cluster {cluster_num}')
+
+
+        if len(sub_temps) > 0:
+
+            ax = sns.stripplot(x = sub_temps['Temperature (F)'], color='lightcoral',
+             size=10, marker='d')
+            ax.set_xlim(20, 100)
+
+        else:
+            ax.text(0.5, 0.5, "No Data Available")
+
+        ax.set_title(f'Temperatures - Cluster {cluster_num}')
 
         ax2 = fig.add_subplot(gs[cluster_num//2, gs_scatter_idx % 4])
         ax2.grid()
-        sub_arr = sub_arr.drop(['cluster', 'day type'], axis=1)
-        sub_arr.reset_index(inplace=True)
-        melted = sub_arr.melt(id_vars='date')
-        ax2.scatter(melted["hour"], melted["value"], alpha=0.05, color='yellowgreen')
-        ax2.plot(centroids[cluster_num][0:24], '.-', color='cornflowerblue', linewidth=2.0)
-        ax2.set_title(f'Number Profiles: {len(sub_arr)}, Peak: {int(np.max(centroids[cluster_num][0:24]))} MW')
+
+        melted = sub_arr.melt(id_vars = ['date'])
+        melted.drop('variable_0', inplace=True, axis=1)
+        melted.columns = ['date', 'hour', 'load']
+
+        sub_arr = df.loc[df['cluster'] == cluster_num]
+        centroid = centroids.iloc[cluster_num]
+        centroid = centroid[1:25]
+
+        ax2.scatter(melted['hour'], melted['load'], color='forestgreen', alpha=0.5)
+        ax2.plot(centroid, '.-', color='cornflowerblue', linewidth=2.0)
+        ax2.set_title(f'Number Profiles: {len(sub_arr)}, Peak: {int(np.max(centroid))} MW')
         ax2.set_ylabel('MW')
         ax2.set_xlabel('Hour of Day')
 
+    
+    output_name = os.path.join(output_path, name)
+
     fig.tight_layout()
-    fig.savefig(f'{output_path}/{name}/{output_tag}{"_" if output_tag else ""}all_clusters_analysis', facecolor='white', transparent=False)
+    fig.savefig(f'{output_path}/{name}{"_" if output_tag else ""}{output_tag if output_tag else ""}', facecolor='white', transparent=False)
     plt.close('all')
 
     print(f'{name} Analysis Graph Generated at: {output_path}/{name}/{output_tag}{"_" if output_tag else ""}all_clusters_analysis')

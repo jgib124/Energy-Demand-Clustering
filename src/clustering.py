@@ -22,12 +22,12 @@ def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
     # NOTE: the random state does not affect the clustering strongly in this application
     cluster_stats = pd.DataFrame(index=range(min_k, max_k), columns=["Silhouette", "DB"])
 
-    print(df)
+    # print(df)
 
     df.index = df['date']
     df = df.drop('date', axis=1)
 
-    print(df)
+    # print(df)
 
     for k in cluster_stats.index:
         kmeans = KMeans(n_clusters=k, random_state=randint(0, 1000)).fit(df)
@@ -51,14 +51,12 @@ def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
     plt.xlabel('Number of Clusters')
     plt.ylabel('Davies-Boulding Score')
 
-    ba_path = os.path.join(output_path, name)
+    score_dir = os.path.join(output_path, "scores")
+    if not os.path.exists(score_dir):
+        os.mkdir(score_dir)
 
-    if not os.path.exists(ba_path):
-        os.mkdir(ba_path)
-
-    plt.savefig(f'{ba_path}/{output_tag}{"_" if output_tag else ""}db_scores')
+    plt.savefig(f"{score_dir}/{name}_db_scores{'_' if output_tag else ''}{output_tag if output_tag else ''}")
     plt.close("all")
-    print(f'{name} Cluster Validity Graph Generated at: {ba_path}/{output_tag}{"_" if output_tag else ""}db_scores')
 
     # cluster_stats.to_csv(f'{ba_path}/{output_tag}{"_" if output_tag else ""}cluster_stats')
     # print(f'{ba} Cluster Stats written to: {ba_path}/{output_tag}{"_" if output_tag else ""}cluster_stats')
@@ -73,7 +71,7 @@ def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
     df['cluster'] = opt_kmeans.labels_
 
     centroids = pd.DataFrame(opt_kmeans.cluster_centers_)
-    centroids = centroids.T
+    # centroids = centroids.T
 
     return df, centroids, opt_k
 
@@ -99,10 +97,14 @@ def cluster_subset(df_demand, input_peak,
         os.mkdir(centroids_dir)
 
 
-    clusters_path = os.path.join(cluster_dir, f"{name}{'_' if output_tag else ''}{output_tag}")
+    # TODO: remove
+    # print("CENTROIDS")
+    # print(centroids)
+
+    clusters_path = os.path.join(cluster_dir, f"{name}{'_' if output_tag else ''}{output_tag if output_tag else ''}.csv")
     df_clusters.to_csv(clusters_path)
 
-    centroids_path = os.path.join(output_path, f"{name}{'_' if output_tag else ''}{output_tag}")
+    centroids_path = os.path.join(centroids_dir, f"{name}{'_' if output_tag else ''}{output_tag if output_tag else ''}.csv")
     centroids.to_csv(centroids_path)
 
 
