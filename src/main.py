@@ -19,7 +19,7 @@ from error_checking import error_check
 @click.option('--clean', '-l', is_flag=True, help="Clean the given input and print to output directory")
 @click.option('--clustering', '-c', default=None, type=str, help="Algorithm used for clustering: ['P', 'S']")
 @click.option('--analysis', '-a', default=None, type=str, help="Type of analysis done on final clusters: ['temp', 'day']")
-@click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
+@click.option('--min_k', '-m', default=3, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
 @click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
 @click.option('--percentile', '-p', default=2.5, type=float, help="Percentile range of peak values tryurned from sampling function")
 @click.option('--output_tag', '-x', default=None, type=str, help="Tag string added to all outputs for this run")
@@ -97,12 +97,13 @@ def main(input_dir, output_dir,
             for filename in os.listdir(clusters_dir_path):
                 # only concerned with CSVs here
                 if not filename.endswith('csv'): continue
-                clusters_path = os.path.join(clusters_dir_path, filename)
-                centroids_path = os.path.join(centroids_dir_path, filename)
-                temps_path = os.path.join(temps_dir_path, filename)
-
 
                 name = filename.split('.')[0]
+                ba = name.split('_')[0]
+
+                clusters_path = os.path.join(clusters_dir_path, filename)
+                centroids_path = os.path.join(centroids_dir_path, filename)
+                temps_path = os.path.join(temps_dir_path, ba+".csv")
 
                 # read in raw data to a dataframe
                 df_clusters = pd.read_csv(clusters_path)
