@@ -9,9 +9,11 @@ def pdf_classification(df, peak, chosen_k, name, output_path):
     max_pdf_seen = 0
     best_cluster = None
 
+    # print(df.columns)
+
     for k in range(chosen_k):
         cluster = df.loc[df['cluster'] == k]
-        cluster = cluster.drop(['cluster', 'day type'], axis=1)
+        cluster = cluster.drop(['cluster'], axis=1)
         peaks = cluster.max(axis=1)
         ax[k//2, k%2].hist(peaks, bins=50, density=True, label='histogram')
 
@@ -34,11 +36,11 @@ def pdf_classification(df, peak, chosen_k, name, output_path):
 
         print(f'{name} Cluster {k} has Density = {peak_pdf} @ {peak} MW')
 
-    fig.tight_layout()
-    plt.savefig(f'{output_path}/{name}/cluster_pdfs', facecolor='white', transparent=False)
-    plt.close('all')
+    # fig.tight_layout()
+    # plt.savefig(f'{output_path}/{name}/cluster_pdfs', facecolor='white', transparent=False)
+    # plt.close('all')
 
-    print(f'{name} PDF Classification Graph written to: {output_path}/{name}/cluster_pdfs')
+    # print(f'{name} PDF Classification Graph written to: {output_path}/{name}/cluster_pdfs')
 
     return best_cluster
 

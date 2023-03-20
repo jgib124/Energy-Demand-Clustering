@@ -42,7 +42,7 @@ def error_check(input_dir, clean, clustering,
             sys.exit(1) 
 
         # Check that the peak data is in input directory
-        if "peak.json" not in input_folders:
+        if "daily_peaks" not in input_folders:
             print("ERROR: peak demand values in the form peak.json were not found in the input " + 
             f"directory {input_dir}")
             sys.exit(1) 

@@ -57,31 +57,43 @@ def main(input_dir, output_dir,
 
              # clean all demand and temp files in input directory
             demand_in_path = os.path.join(input_path, "demand")
-            peaks_in_path = os.path.join(input_path, "peak.json")
+            peaks_in_path = os.path.join(input_path, "daily_peaks/")
 
             if not os.path.exists(output_path):
                 os.mkdir(output_path)
 
-            f = open(peaks_in_path)
-            peaks = json.load(f)
 
             for filename in os.listdir(demand_in_path):
                 # only concerned with CSVs here
                 if not filename.endswith('csv'): continue
-                file_path = os.path.join(demand_in_path, filename)
-                name = filename.split('.')[0]
-                peak = peaks[name]
 
-                # read in raw data to a dataframe
-                df_demand = pd.read_csv(file_path)
+                df_demand = None
+                if os.path.exists(os.path.join(demand_in_path, filename)):
+                    df_demand = pd.read_csv(os.path.join(demand_in_path, filename))
+                else:
+                    df_demand = pd.read_csv(os.path.join(demand_in_path, filename.split('.')[0]))
 
-                if clustering == 'P':
-                    classify_cluster(df_demand, peak, min_k,
-                     max_k, name, output_path, output_tag)
+                df_peaks = None
+                print(peaks_in_path)
+                print(os.listdir(peaks_in_path))
+                if os.path.exists(os.path.join(peaks_in_path, filename)):
+                    df_peaks = pd.read_csv(os.path.join(peaks_in_path, filename))
+                else:
+                    df_peaks = pd.read_csv(os.path.join(peaks_in_path, filename.split('.')[0]))                
 
-                elif clustering == 'S':
-                    cluster_subset(df_demand, peak, percentile, 
-                     min_k, max_k, name, output_path, output_tag)
+
+                # if clustering == 'P':
+                #     classify_cluster(df_demand, peak, min_k,
+                #      max_k, name, output_path, output_tag)
+
+                # TODO: remove - only doing a month of peaks
+                # df_peaks = df_peaks[0:15]
+
+                # print("\n\n\nDEMAND: ", df_demand.loc[0:15])
+
+                if clustering == 'S':
+                    hourly_profile = cluster_subset(df_demand, df_peaks, percentile, 
+                     min_k, max_k, filename.split('.')[0], output_path, output_tag)
             
 
         if analysis:
@@ -114,8 +126,6 @@ def main(input_dir, output_dir,
 
                 analyze_df(df_clusters, df_centroids, df_temps,
                  len(df_centroids), name, analysis_out_path, output_tag)
-
-
 
 
 
