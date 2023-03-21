@@ -190,11 +190,11 @@ def cluster_subset(df_demand, df_peaks,
         if not os.path.exists(centroids_dir):
             os.mkdir(centroids_dir)
 
-        clusters_path = os.path.join(cluster_dir, f"{name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_jenkins_{i}.csv")
-        df_clusters.to_csv(clusters_path)
+        # clusters_path = os.path.join(cluster_dir, f"{name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_jenkins_{i}.csv")
+        # df_clusters.to_csv(clusters_path)
 
-        centroids_path = os.path.join(centroids_dir, f"{name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_jenkins_{i}.csv")
-        centroids.to_csv(centroids_path)
+        # centroids_path = os.path.join(centroids_dir, f"{name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_jenkins_{i}.csv")
+        # centroids.to_csv(centroids_path)
 
         # Save the centroids in memory to query
         jenkins_centroids[i] = centroids
@@ -231,7 +231,14 @@ def cluster_subset(df_demand, df_peaks,
 
             # TODO: can calculate stats here
 
-        hourly_profile.extend(centroids.loc[k])
+        selected_profile = centroids.loc[best_k]
+        selected_peak = np.max(selected_profile)
+        scaling_factor = peak_value / selected_peak
+        # print('SCALING FACTOR: ', scaling_factor)
+
+        scaled_profile = scaling_factor * selected_profile
+
+        hourly_profile.extend(scaled_profile)
 
 
     df_subset = df_demand.reset_index()
@@ -305,9 +312,9 @@ def classify_cluster(df_demand, input_peak,
         os.mkdir(centroids_dir)
 
 
-    clusters_path = os.path.join(cluster_dir, f"{name}{'_' if output_tag else ''}{output_tag}.csv")
-    df_subset.to_csv(clusters_path)
+    # clusters_path = os.path.join(cluster_dir, f"{name}{'_' if output_tag else ''}{output_tag}.csv")
+    # df_subset.to_csv(clusters_path)
 
     # only one centroid written to file
-    centroids_path = os.path.join(centroids_dir, f"{name}{'_' if output_tag else ''}{output_tag}.csv")
-    centroids.iloc[[best_cluster]].to_csv(centroids_path)
+    # centroids_path = os.path.join(centroids_dir, f"{name}{'_' if output_tag else ''}{output_tag}.csv")
+    # centroids.iloc[[best_cluster]].to_csv(centroids_path)
