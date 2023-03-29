@@ -8,7 +8,7 @@ import traceback
 import pandas as pd
 
 from clean import clean_data
-from clustering import classify_cluster, cluster_subset
+from clustering import cluster_subset
 from analysis import analyze_df
 from classification import pdf_classification, get_sample_load_profiles
 from error_checking import error_check
@@ -17,7 +17,7 @@ from error_checking import error_check
 @click.option('--input_dir', '-i', default='data', type=click.Path(dir_okay=True), help="Input directory for segment being run")
 @click.option('--output_dir', '-o', default='outputs', type=click.Path(dir_okay=True), help="Output directory for segment being run")
 @click.option('--clean', '-l', is_flag=True, help="Clean the given input and print to output directory")
-@click.option('--clustering', '-c', default=None, type=str, help="Algorithm used for clustering: ['P', 'S']")
+@click.option('--clustering', '-c', default=None, type=str, help="Algorithm used for clustering: ['S']")
 @click.option('--analysis', '-a', default=None, type=str, help="Type of analysis done on final clusters: ['temp', 'day']")
 @click.option('--min_k', '-m', default=3, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
 @click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
@@ -28,9 +28,11 @@ def main(input_dir, output_dir,
   min_k, max_k, percentile, output_tag):
 
     try:
+        # Checks argument inputs and prints errors to output
         error_check(input_dir, clean, clustering,
          analysis, min_k, max_k, percentile)
 
+        # Appends input directory (specified in argument) to CWD
         input_path = os.path.join(os.getcwd(), input_dir)
 
         # Create output path if it does not exist
@@ -39,8 +41,6 @@ def main(input_dir, output_dir,
             os.mkdir(output_path)
 
         # Check segment being requested and direct to correct function
-        # TODO: create callable functions for each segment of functionality (clean, cluster, analyze)
-        # TODO: everything below needs to be reconfigured!!!
 
         # Clean
         if clean:
@@ -57,11 +57,10 @@ def main(input_dir, output_dir,
 
              # clean all demand and temp files in input directory
             demand_in_path = os.path.join(input_path, "demand")
-            peaks_in_path = os.path.join(input_path, "daily_peaks/")
+            peaks_in_path = os.path.join(input_path, "daily_peaks")
+            temp_in_path = os.path.join(input_path, "temp")
 
-            if not os.path.exists(output_path):
-                os.mkdir(output_path)
-
+            os.makedirs(output_path, exist_ok=True)
 
             for filename in os.listdir(demand_in_path):
                 # only concerned with CSVs here
@@ -73,27 +72,25 @@ def main(input_dir, output_dir,
                 else:
                     df_demand = pd.read_csv(os.path.join(demand_in_path, filename.split('.')[0]))
 
+                df_temps = None
+                if os.path.exists(os.path.join(temp_in_path, filename)):
+                    df_temps = pd.read_csv(os.path.join(temp_in_path, filename))
+                else:
+                    df_temps = pd.read_csv(os.path.join(temp_in_path, filename.split('.')[0]))
+
                 df_peaks = None
-                print(peaks_in_path)
-                print(os.listdir(peaks_in_path))
                 if os.path.exists(os.path.join(peaks_in_path, filename)):
                     df_peaks = pd.read_csv(os.path.join(peaks_in_path, filename))
                 else:
                     df_peaks = pd.read_csv(os.path.join(peaks_in_path, filename.split('.')[0]))                
 
-
-                # if clustering == 'P':
-                #     classify_cluster(df_demand, peak, min_k,
-                #      max_k, name, output_path, output_tag)
-
-                # TODO: remove - only doing a month of peaks
-                # df_peaks = df_peaks[0:15]
-
-                # print("\n\n\nDEMAND: ", df_demand.loc[0:15])
+                ba_name = filename.split('.')[0]
+                print(ba_name)
+                assert(len(ba_name) > 0)
 
                 if clustering == 'S':
-                    hourly_profile = cluster_subset(df_demand, df_peaks, percentile, 
-                     min_k, max_k, filename.split('.')[0], output_path, output_tag)
+                    hourly_profile = cluster_subset(df_demand, df_peaks, df_temps, 
+                     min_k, max_k, ba_name, output_path, output_tag)
             
 
         if analysis:

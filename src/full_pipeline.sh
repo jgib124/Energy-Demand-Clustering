@@ -17,15 +17,18 @@ inp=$1
 out=$2
 tag=$3
 
+# Create output directory
+mkdir "outputs_$tag" -p
+
 # Clean Data
-python3 main.py --input_dir $inp --output_dir "CLEAN_TEMPORARY" --clean --output_tag $tag
+python3 main.py --input_dir $inp --output_dir "outputs_$tag/Cleaned_$tag" --clean --output_tag $tag
 
 # Need to move peaks into input directory of clustering
 # cp $inp/"peak.json" "CLEAN_TEMPORARY"/"peak.json"
-cp -r $inp/"daily_peaks" "CLEAN_TEMPORARY"
+cp -r $inp/"daily_peaks" "outputs_$tag/Cleaned_$tag"
 
 # Cluster Data
-python3 main.py --input_dir "CLEAN_TEMPORARY" --output_dir "CLUSTER_TEMPORARY" --clustering "S" --output_tag $tag
+python3 main.py --input_dir "outputs_$tag/Cleaned_$tag" --output_dir "outputs_$tag/Clustered_$tag" --clustering "S" --output_tag $tag
 
 # Assemble the Year-Long Hourly Profile
 
