@@ -8,9 +8,11 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Specific Tools
 from itertools import chain
+from numpy.random import normal
 from jenkspy import JenksNaturalBreaks
 from scipy.spatial.distance import euclidean
 from sklearn.cluster import KMeans
@@ -72,7 +74,8 @@ def jenkins_peaks(df, min_k, max_k, name, output_path, output_tag, PENALTY_CONST
     plt.plot(cluster_stats['Penalized'], label='DB w/ K-Penalized Score')
 
     # Add vertical line where Penalized Score is minimized
-    best_k_penalized = cluster_stats.loc[cluster_stats['Penalized'] == cluster_stats['Penalized'].min()].index[0]
+    best_k_penalized = cluster_stats['Penalized'].astype('float').idxmin()
+    # best_k_penalized = cluster_stats.loc[cluster_stats['Penalized'] == cluster_stats['Penalized'].min()].index[0]
     plt.axvline(best_k_penalized, label='Best Penalized Score', linestyle="--", color='green')
 
     plt.legend()
@@ -114,7 +117,12 @@ def jenkins_peaks(df, min_k, max_k, name, output_path, output_tag, PENALTY_CONST
 def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
     # NOTE: the random state does not affect the clustering strongly in this application
     # Track scoring statistics
-    cluster_stats = pd.DataFrame(index=range(min_k, max_k), columns=["Silhouette", "DB"])
+
+    if len(df) < (max_k + 1):
+        max_k = len(df) - 1
+
+    cluster_stats = pd.DataFrame(index=np.arange(min_k, max_k), columns=["DB"])
+    cluster_stats.index = pd.to_numeric(cluster_stats.index)
 
     df.index = df['date']
     df = df.drop('date', axis=1)
@@ -124,7 +132,7 @@ def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
         kmeans = KMeans(n_clusters=k, random_state=randint(0, 1000)).fit(df)
 
         # Calculate the Silhouette Score for each cluster
-        cluster_stats['Silhouette'][k] = silhouette_score(df, kmeans.labels_)
+        # cluster_stats['Silhouette'][k] = silhouette_score(df, kmeans.labels_)
 
         # Davies Boulding score
         cluster_stats['DB'][k] = davies_bouldin_score(df, kmeans.labels_)
@@ -133,7 +141,7 @@ def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
     plt.plot(cluster_stats['DB'], label='Davies-Bouldin Score')
 
     # add vertical line where DB score is minimized
-    opt_k = cluster_stats.loc[cluster_stats['DB'] == cluster_stats['DB'].min()].index[0]
+    opt_k = cluster_stats['DB'].astype('float').idxmin()
     plt.axvline(opt_k, label='Optimal K', linestyle="--", color='green')
 
     plt.title(f'{name} KMeans Davies-Boulding Scores')
@@ -180,7 +188,30 @@ def cluster_subset(df_demand, df_peaks, df_temps,
 
     hourly_profile = []
 
+    # Make directories for this run
+    cluster_dir = os.path.join(output_path, "clusters")
+    df_dir = os.path.join(cluster_dir, "demand_dataframes")
+    centroids_dir = os.path.join(cluster_dir, "centroid_profiles")
+    eval_dir = os.path.join(cluster_dir, "evaluation")
+    temperature_dir = os.path.join(cluster_dir, "cluster_temperatures")
+
+    os.makedirs(cluster_dir, exist_ok=True)
+    os.makedirs(df_dir, exist_ok=True)
+    os.makedirs(centroids_dir, exist_ok=True)
+    os.makedirs(eval_dir, exist_ok=True)
+    os.makedirs(temperature_dir, exist_ok=True)
+
+    # Ensure dates are datetime objects
+    df_demand['date'] = pd.to_datetime(df_demand['date'])
     df_temps['date'] = pd.to_datetime(df_temps['date'])
+    df_peaks['date'] = pd.to_datetime(df_peaks['date'])
+
+    # Only use df_demand dates where there is a corresponding temperature record
+    # print("Before Subsetting: ", len(df_demand))
+    df_demand = df_demand.loc[df_demand['date'].isin(df_temps['date'])]
+    df_peaks = df_peaks.loc[df_peaks['date'].isin(df_temps['date'])]
+    # print("After Subsetting: ", len(df_demand))
+
 
     # TODO: jenks natural breaks for peaks here
     # Segment peaks into groups that will be clustered
@@ -199,72 +230,76 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         upper = breaks[i + 1]
 
         # df_subset = df_demand.where
-        jenkins_group = df_demand.loc[df_demand.max(axis=1).between(lower, upper)]
+        jenks_group = df_demand.loc[df_demand.max(axis=1).between(lower, upper)]
 
         # All days where the peak is within the selected Jenks group
         # Need to account for situation where Jenks group is smaller
         # Than specified maximum number of clusters
         jenks_max_k = max_k
-        if (len(jenkins_group) - 1) < max_k:
-            jenks_max_k = len(jenkins_group) - 1
+        if (len(jenks_group) - 1) < max_k:
+            jenks_max_k = len(jenks_group) - 1
 
         if jenks_max_k <= min_k:
             jenks_max_k = min_k
 
 
-        print(f"Jenks Group {lower} MW - {upper} MW: ")
+        print(f"\n\nJenks Group {lower} MW - {upper} MW: ")
         jenks_name = f"{name}_{int(lower)}_{int(upper)}_MW"
         print(f"Group Name: {jenks_name}")
+        print("Size of Jenks Group: ", len(jenks_group))
 
-        df_clusters, centroids, num_clusters = kmeans_clustering(jenkins_group, 
-            min_k, jenks_max_k, jenks_name, output_path, output_tag)
-        
         centroids_dict = {}
-
-        # Use df_clusters to match dates and temperatures up with clusters
-        # Get average temperature for each cluster
-
-        fig, ax = plt.subplots(num_clusters//2 + 1, 2,figsize=(40, 32))
-
-        for c in range(num_clusters):
-            # get dates for all profiles within this cluster
-            cluster_dates = df_clusters.loc[df_clusters['cluster'] == c].index
-            c_temps = df_temps.loc[df_temps['date'].isin(cluster_dates)]['Temperature (F)']
-
-            mu = np.mean(c_temps)
-            sigma = np.std(c_temps)
-
-            print('\n', c)
-            print(len(c_temps))
-            print("Mean Temperature:", mu)
-            print("Temperature Standard Deviation:", sigma)
-
-            centroids_dict[round(mu, 4)] = centroids.iloc[c]
-
-
-            from numpy.random import normal
-            import seaborn as sns
-            gauss = normal(mu, sigma, size=250)
-            sns.histplot(gauss, kde=True, ax=ax[c//2, c%2])
-            ax[c//2, c%2].set_title(f'Cluster {c}')
-
-
-            # TODO
         
-        cluster_dir = os.path.join(output_path, "clusters")
-        df_dir = os.path.join(cluster_dir, "DataFrames")
-        centroids_dir = os.path.join(cluster_dir, "centroids")
+        if len(jenks_group) > (min_k + 1):
+            df_clusters, centroids, num_clusters = kmeans_clustering(jenks_group, 
+                min_k, jenks_max_k, jenks_name, output_path, output_tag)
 
-        os.makedirs(cluster_dir, exist_ok=True)
-        os.makedirs(df_dir, exist_ok=True)
-        os.makedirs(centroids_dir, exist_ok=True)
+            # Use df_clusters to match dates and temperatures up with clusters
+            # Get average temperature for each cluster
 
-        temp_plot_path = os.path.join(cluster_dir, f"{name}_cluster_temperatures")
-        plt.tight_layout()
-        plt.suptitle(f'{name} Cluster Temperatures')
+            fig, ax = plt.subplots(math.ceil(num_clusters/2), 2)
 
-        plt.savefig(temp_plot_path)
-        plt.close('all')
+            for c in range(num_clusters):
+                # get dates for all profiles within this cluster
+                cluster_dates = df_clusters.loc[df_clusters['cluster'] == c].index
+                c_temps = df_temps.loc[df_temps['date'].isin(cluster_dates)]['Temperature (F)']
+
+                mu = np.mean(c_temps)
+                sigma = np.std(c_temps)
+
+                print('\nCluster:', c)
+                print("Profiles in Cluster:", len(c_temps))
+                print("Mean Temperature:", mu)
+                print("Temperature Standard Deviation:", sigma, '\n')
+
+                centroids_dict[round(mu, 4)] = centroids.iloc[c]
+
+                gauss = normal(mu, sigma, size=250)
+                if (math.ceil(num_clusters/2) > 1):
+                    ax[c//2, c%2].set_title(f'Cluster {c}')
+                    ax[c//2, c%2].set_xlabel("Temperature (F)")
+                    sns.histplot(gauss, kde=True, ax=ax[c//2, c%2])
+
+                else:
+                    ax[c%2].set_title(f'Cluster {c}')
+                    ax[c%2].set_xlabel("Temperature (F)")
+                    sns.histplot(gauss, kde=True, ax=ax[c%2])
+
+                    
+
+            plot_name = f"{jenks_name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_cluster_temperatures.png"
+            plt.tight_layout()
+            plt.suptitle(f'{name} Cluster Temperatures')
+
+            plt.savefig(os.path.join(temperature_dir, plot_name))
+            plt.close('all')
+
+        else: 
+            this_date = jenks_group.index
+            jenks_group = jenks_group.drop('date', axis=1)
+            this_temp = df_temps.loc[df_temps['date'] == this_date]['Temperature (F)']
+            centroids_dict[round(this_temp, 4)] = jenks_group
+
 
         df_path = os.path.join(df_dir, f"{jenks_name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_kmeans_dataframe.csv")
         df_clusters.to_csv(df_path)
@@ -277,6 +312,20 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         # Save the centroids in memory to query
         jenkins_centroids[i] = centroids_dict
 
+
+
+    # TODO-REMOVE: only doing 2017
+    # df_peaks = df_peaks.loc[df_peaks['date'].dt.year == 2017]
+    # df_demand = df_demand.loc[df_demand['date'].dt.year == 2017]
+
+    df_peaks['week'] = df_peaks['date'].dt.week
+    df_demand['week'] = df_demand['date'].dt.week
+
+    # # print(df_peaks['week'])
+
+    # # Get weeks for Winter, Spring, Fall, & Summer
+    # df_peaks = df_peaks.loc[df_peaks['week'] == 44]
+    # df_demand = df_demand.loc[df_demand['week'] == 44]
 
     for _, row in df_peaks.iterrows():
 
@@ -304,7 +353,7 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         # actual = np.array(df_demand.drop(['date'], axis=1).loc[date])
         actual_temp = df_temps.loc[df_temps['date'] == date]['Temperature (F)']
 
-        print(f'ACTUAL: {date} {actual_temp}')
+        # print(f'ACTUAL: {date} {actual_temp}')
 
         # Selection Criteria for Backcasting:
         # Choose profile with minimum euclidean distance
@@ -331,7 +380,7 @@ def cluster_subset(df_demand, df_peaks, df_temps,
             best_diff = math.inf
             for temp in centroids_dict.keys():
                 temp_diff = np.abs(float(temp) - actual_temp.iloc[0])
-                print(temp_diff, best_diff)
+                # print(temp_diff, best_diff)
                 if temp_diff < best_diff:
                     best_diff = temp_diff
                     best_centroid = centroids_dict[temp]
@@ -346,13 +395,33 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         scaling_factor = peak_value / selected_peak
         scaled_profile = scaling_factor * best_centroid
 
+        scaled_peak  = np.max(scaled_profile)
+        print("\nPEAKS:", scaled_peak, peak_value)
+
         hourly_profile.extend(scaled_profile)
 
 
     df_subset = df_demand.reset_index()
     dates = df_subset['date'].to_list()
-    x_hours = pd.date_range(dates[0], pd.to_datetime(dates[-1]) + datetime.timedelta(1), freq='H', inclusive='left')
-    df_subset = df_subset.drop(['index', 'date'], axis=1)   
+
+    # TODO: there have been problems with the dates not matching up
+    # Add if-statements to check that data structures are the same length
+    x_hours = None
+    if len(df_subset) != len(dates):
+        x_hours = pd.date_range(dates[0], pd.to_datetime(dates[-1]) + datetime.timedelta(1), freq='H', inclusive='left')
+    else:
+        x_hours = pd.date_range(dates[0], pd.to_datetime(dates[-1]), freq='H', inclusive='left')
+
+    print("LENGTHS: ", len(df_subset), len(x_hours), len(hourly_profile), len(dates))
+    
+
+
+
+    # print(dates)
+    # print(x_hours)
+    # print(df_subset)
+
+    df_subset = df_subset.drop(['index', 'date', 'week'], axis=1)   
 
     df_subset = np.array(list(chain(*np.array(df_subset))))
     hourly_profile = np.array(hourly_profile)
@@ -361,14 +430,38 @@ def cluster_subset(df_demand, df_peaks, df_temps,
     ax = fig.add_subplot()
     fig.subplots_adjust(top=0.85)
 
-    ax.plot(x_hours, hourly_profile, '-', label='Predicted', alpha=0.5, linewidth=2)
-    ax.plot(x_hours, df_subset, '--', label='Actual', alpha=0.6)
+    ax.plot(x_hours, df_subset, 'o', label='Actual', alpha=0.4)
+    ax.plot(x_hours, hourly_profile, 'o', label='Predicted', alpha=0.6)
     plt.gcf().autofmt_xdate()
+
+    for i in np.arange(0, len(x_hours), 48):
+        start = x_hours[i]
+        end = x_hours[i] + datetime.timedelta(hours=24)
+
+        plt.axvspan(start, end, color='gray', alpha=0.2)
+
+    for i in np.arange(0, len(x_hours), 24):
+        start = x_hours[i]
+        end = x_hours[i] + datetime.timedelta(hours=24)
+        day_peak = np.max(hourly_profile[i:i+24])
+
+        plt.hlines(y=day_peak, xmin=start, xmax=end, linewidth=1, linestyle='--', color='green')
+
 
     # Calculate RMSE and MAE
     rmse = math.sqrt(mean_squared_error(df_subset, hourly_profile))
     mae = mean_absolute_error(df_subset, hourly_profile)
     mape = mean_absolute_percentage_error(df_subset, hourly_profile)
+
+    error_values = pd.DataFrame(index=['RMSE', 'MAE', 'MAPE'], columns=['Value'], data=[rmse, mae, mape])
+    error_values.to_csv(f"{eval_dir}/{name}_error_values.csv")
+
+    with open(f"{eval_dir}/error_values.csv", 'a+') as f:
+        if os.stat(f"{eval_dir}/error_values.csv").st_size == 0:
+            f.write("ba,stat,value\n")
+        f.write(f"{name},RMSE,{rmse}\n")
+        f.write(f"{name},MAE,{mae}\n")
+        f.write(f"{name},MAPE,{mape}\n")
 
     ax.text(x_hours[int(0.75*len(x_hours))], np.min(hourly_profile), f'RMSE: {round(rmse, 2)} \nMAE: {round(mae, 2)} \nMAPE: {round(mape, 2)}', style='italic',
         bbox={'facecolor': 'red', 'alpha': 0.5, 'pad': 10})

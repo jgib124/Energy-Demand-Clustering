@@ -19,18 +19,17 @@ from error_checking import error_check
 @click.option('--clean', '-l', is_flag=True, help="Clean the given input and print to output directory")
 @click.option('--clustering', '-c', default=None, type=str, help="Algorithm used for clustering: ['S']")
 @click.option('--analysis', '-a', default=None, type=str, help="Type of analysis done on final clusters: ['temp', 'day']")
-@click.option('--min_k', '-m', default=3, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
+@click.option('--min_k', '-m', default=2, type=int, help='Minimum number of clusters, must be >2 and <= max_k')
 @click.option('--max_k', '-k', default=15, type=int, help='Maximum number of clusters, must be >2 and >= min_k')
-@click.option('--percentile', '-p', default=2.5, type=float, help="Percentile range of peak values tryurned from sampling function")
 @click.option('--output_tag', '-x', default=None, type=str, help="Tag string added to all outputs for this run")
 def main(input_dir, output_dir,
  clean, clustering, analysis, 
-  min_k, max_k, percentile, output_tag):
+  min_k, max_k, output_tag): 
 
     try:
         # Checks argument inputs and prints errors to output
         error_check(input_dir, clean, clustering,
-         analysis, min_k, max_k, percentile)
+         analysis, min_k, max_k)
 
         # Appends input directory (specified in argument) to CWD
         input_path = os.path.join(os.getcwd(), input_dir)
@@ -57,7 +56,7 @@ def main(input_dir, output_dir,
 
              # clean all demand and temp files in input directory
             demand_in_path = os.path.join(input_path, "demand")
-            peaks_in_path = os.path.join(input_path, "daily_peaks")
+            peaks_in_path = os.path.join(input_path, "peaks")
             temp_in_path = os.path.join(input_path, "temp")
 
             os.makedirs(output_path, exist_ok=True)

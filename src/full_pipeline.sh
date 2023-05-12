@@ -25,7 +25,7 @@ python3 main.py --input_dir $inp --output_dir "outputs_$tag/Cleaned_$tag" --clea
 
 # Need to move peaks into input directory of clustering
 # cp $inp/"peak.json" "CLEAN_TEMPORARY"/"peak.json"
-cp -r $inp/"daily_peaks" "outputs_$tag/Cleaned_$tag"
+cp -r $inp/"peaks" "outputs_$tag/Cleaned_$tag"
 
 # Cluster Data
 python3 main.py --input_dir "outputs_$tag/Cleaned_$tag" --output_dir "outputs_$tag/Clustered_$tag" --clustering "S" --output_tag $tag

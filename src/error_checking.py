@@ -3,7 +3,7 @@ import os
 import traceback
 
 def error_check(input_dir, clean, clustering,
- analysis, min_k, max_k, percentile):
+ analysis, min_k, max_k):
 
     # Handle errors in commmand line input
     # Check that the input directory exists
@@ -42,15 +42,10 @@ def error_check(input_dir, clean, clustering,
             sys.exit(1) 
 
         # Check that the peak data is in input directory
-        if "daily_peaks" not in input_folders:
-            print("ERROR: peak demand values in the form peak.json were not found in the input " + 
-            f"directory {input_dir}")
+        if "peaks" not in input_folders:
+            print("ERROR: peak demand values in the form daily time series CSVs were not found in the input " + 
+            f"not found in the input directory {input_dir}")
             sys.exit(1) 
-
-        # Check that the percentile for subsetting is valid
-        if (percentile < 0) or (percentile > 100):
-            print(f"ERROR: percentile value {percentile} for profile subsetting is not valid." + 
-            " Choose from range [0, 100]")
 
         # Check that the maximum number of clusters is valid
         if max_k < 2:
@@ -67,10 +62,6 @@ def error_check(input_dir, clean, clustering,
             print("ERROR: min_k value must be less that or equal to max_k value.")
             sys.exit(1)
 
-        # Check that a valid clustering algorithm has been chosen
-        if clustering not in ['S', 'P']:
-            print(f'ERROR: algo must be one of the specified values ["S", "P"]. Input "{clustering}" is not valid.')
-            sys.exit(1)
 
     # error checks for analysis
     if analysis:
