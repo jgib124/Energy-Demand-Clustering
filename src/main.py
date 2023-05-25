@@ -52,9 +52,8 @@ def main(input_dir, output_dir,
             # Writes clusters, centroids, and  Davies-Bouldin Score Graphs to output path 
             # (Clusters - CSV, Centroids - CSV, DB Score (Graph) - PNG)
 
-            # TODO: need to change to only have input and output paths
 
-             # clean all demand and temp files in input directory
+            # clean all demand and temp files in input directory
             demand_in_path = os.path.join(input_path, "demand")
             peaks_in_path = os.path.join(input_path, "peaks")
             temp_in_path = os.path.join(input_path, "temp")

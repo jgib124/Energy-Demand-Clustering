@@ -176,10 +176,6 @@ def kmeans_clustering(df, min_k, max_k, name, output_path, output_tag):
     return df, centroids, opt_k
 
 
-# TODO:
-# 1. Remove percentile argument
-# 2. Write Dataframes and hourly profiles to separate folders
-
 # Cluster Subset Method
 # Subset all demand data, cluster that data
 # Write the clustered data and the centroids
@@ -324,23 +320,12 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         jenkins_samples[i] = samples_dict
 
 
-
-    # TODO-REMOVE: only doing 2017
-    # df_peaks = df_peaks.loc[df_peaks['date'].dt.year == 2017]
-    # df_demand = df_demand.loc[df_demand['date'].dt.year == 2017]
-
     df_peaks['week'] = df_peaks['date'].dt.week
     df_demand['week'] = df_demand['date'].dt.week
 
-    # # print(df_peaks['week'])
-
-    # # Get weeks for Winter, Spring, Fall, & Summer
-    # df_peaks = df_peaks.loc[df_peaks['week'] == 44]
-    # df_demand = df_demand.loc[df_demand['week'] == 44]
 
     for _, row in df_peaks.iterrows():
 
-        # TODO: decide cluster centroid selection criteria
         # Backcasting -- Choose choose the profile that is closest to actual
         
         # Forecasting -- 
@@ -415,23 +400,25 @@ def cluster_subset(df_demand, df_peaks, df_temps,
                 if temp_diff < best_diff:
                     best_diff = temp_diff
                     # Randomly choose a sample from the cluster
-                    # best_sample = [temp]
+                    best_sample = cluster_samples[temp].sample(n=1)
 
         else: 
             # no temperature for that day on file
-            # randomly choose??
-            temp = choice(list(centroids_dict.keys()))
-            best_centroid = centroids_dict[temp]
+            # Randomly choose!!!
+            temp = choice(list(cluster_samples.keys()))
+            best_centroid = cluster_samples[temp].sample(n=1)
 
 
-        selected_peak = np.max(best_centroid)
+        print("BEST SAMPLE:", best_sample)
+        best_sample = best_sample.drop(['cluster'], axis=1)
+        selected_peak = np.max(best_sample)
         scaling_factor = peak_value / selected_peak
-        scaled_profile = scaling_factor * best_centroid
+        scaled_profile = scaling_factor * best_sample
 
         scaled_peak  = np.max(scaled_profile)
-        print("\nPEAKS:", scaled_peak, peak_value)
+        # print("\nPEAKS:", scaled_peak, peak_value)
 
-        hourly_profile.extend(scaled_profile)
+        hourly_profile.extend(np.array(scaled_profile).flatten().tolist())
 
 
     df_subset = df_demand.reset_index()
@@ -440,14 +427,15 @@ def cluster_subset(df_demand, df_peaks, df_temps,
     # TODO: there have been problems with the dates not matching up
     # Add if-statements to check that data structures are the same length
     x_hours = None
-    if len(df_subset) != len(dates):
+    if len(hourly_profile) > len(dates)*24:
+        # Hourly profile may include an extra day at the end
         x_hours = pd.date_range(dates[0], pd.to_datetime(dates[-1]) + datetime.timedelta(1), freq='H', inclusive='left')
     else:
         x_hours = pd.date_range(dates[0], pd.to_datetime(dates[-1]), freq='H', inclusive='left')
 
-    print("LENGTHS: ", len(df_subset), len(x_hours), len(hourly_profile), len(dates))
-    
-
+    print("LENGTHS: ", len(df_subset), len(x_hours), len(hourly_profile), len(dates)*24)
+    print("DATES: ", dates[0], dates[-1])
+    print("HOURS: ", x_hours[0], x_hours[-1])
 
 
     # print(dates)
