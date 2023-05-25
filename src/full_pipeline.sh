@@ -7,6 +7,9 @@
 # Stop on errors, print commands
 set -eoux pipefail
 
+# Ensure that all necessary libraries are installed
+pip install -r requirements.txt
+
 # Echo the inputs
 echo "Input Directory: $1"
 echo "Output Directory: $2"

@@ -207,23 +207,22 @@ def cluster_subset(df_demand, df_peaks, df_temps,
     df_peaks['date'] = pd.to_datetime(df_peaks['date'])
 
     # Only use df_demand dates where there is a corresponding temperature record
-    # print("Before Subsetting: ", len(df_demand))
     df_demand = df_demand.loc[df_demand['date'].isin(df_temps['date'])]
     df_peaks = df_peaks.loc[df_peaks['date'].isin(df_temps['date'])]
-    # print("After Subsetting: ", len(df_demand))
 
 
-    # TODO: jenks natural breaks for peaks here
+    # --- JENKS NATURAL BREAKS ALGORITHM ---
     # Segment peaks into groups that will be clustered
-    # Replaces the get_sample_load_profiles functionality, and is only run once at the beginning og this function
-    # Store the centroids of all of these natural break groups
+    # Store the centroids and group members of all of these natural break groups
     # Query these centroids for the peaks that match up to extend hourly profile
     # Breaks include the min and max values of the entire range
     df_labeled, opt_k, breaks, group_classifier = jenkins_peaks(df_peaks, 3, 50, name, output_path, output_tag)
 
     # kmeans for peaks within a group
     # Save centroids to a queryable object, 0-indexed for groups
-    jenkins_centroids = dict()
+    # Save cluster members to a queryable object, 0-indexed for groups
+    # jenkins_centroids = dict()
+    jenkins_samples = dict()
 
     for i in range(len(breaks) - 1):
         lower = breaks[i]
@@ -248,7 +247,8 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         print(f"Group Name: {jenks_name}")
         print("Size of Jenks Group: ", len(jenks_group))
 
-        centroids_dict = {}
+        # centroids_dict = {}
+        samples_dict = {}
         
         if len(jenks_group) > (min_k + 1):
             df_clusters, centroids, num_clusters = kmeans_clustering(jenks_group, 
@@ -272,7 +272,12 @@ def cluster_subset(df_demand, df_peaks, df_temps,
                 print("Mean Temperature:", mu)
                 print("Temperature Standard Deviation:", sigma, '\n')
 
-                centroids_dict[round(mu, 4)] = centroids.iloc[c]
+                # NOTE: df_clusters are the clusters WITHIN the Jenks group
+                # centroids_dict[round(mu, 4)] = centroids.iloc[c]
+                samples_dict[round(mu, 4)] = df_clusters.loc[df_clusters['cluster'] == c]
+
+                # What data type is this?
+                print(type(samples_dict[round(mu, 4)]), samples_dict[round(mu, 4)].head(5))
 
                 gauss = normal(mu, sigma, size=250)
                 if (math.ceil(num_clusters/2) > 1):
@@ -298,7 +303,12 @@ def cluster_subset(df_demand, df_peaks, df_temps,
             this_date = jenks_group.index
             jenks_group = jenks_group.drop('date', axis=1)
             this_temp = df_temps.loc[df_temps['date'] == this_date]['Temperature (F)']
-            centroids_dict[round(this_temp, 4)] = jenks_group
+            # centroids_dict[round(this_temp, 4)] = jenks_group
+            samples_dict[round(this_temp, 4)] = jenks_group
+
+            print("Only one cluster for this Jenks group",
+                   type(samples_dict[round(this_temp, 4)]),
+                     samples_dict[round(this_temp, 4)].head(5))
 
 
         df_path = os.path.join(df_dir, f"{jenks_name}{'_' if output_tag else ''}{output_tag if output_tag else ''}_kmeans_dataframe.csv")
@@ -310,7 +320,8 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         # Package the dates, the average temperature, and the centroid together
 
         # Save the centroids in memory to query
-        jenkins_centroids[i] = centroids_dict
+        # jenkins_centroids[i] = centroids_dict
+        jenkins_samples[i] = samples_dict
 
 
 
@@ -347,7 +358,8 @@ def cluster_subset(df_demand, df_peaks, df_temps,
 
         peaks_group = group_classifier.predict(peak_value)
 
-        centroids_dict = jenkins_centroids[int(peaks_group)]
+        # centroids_dict = jenkins_centroids[int(peaks_group)]
+        cluster_samples = jenkins_samples[int(peaks_group)]
 
         # get same date row from df_demand
         # actual = np.array(df_demand.drop(['date'], axis=1).loc[date])
@@ -374,22 +386,43 @@ def cluster_subset(df_demand, df_peaks, df_temps,
         # scaled_profile = scaling_factor * selected_profile
 
         # Seletion for forecasting: closest temperature
-        best_centroid = None
+        # best_centroid = None
 
+        # if len(actual_temp) != 0:
+        #     best_diff = math.inf
+        #     for temp in centroids_dict.keys():
+        #         temp_diff = np.abs(float(temp) - actual_temp.iloc[0])
+        #         # print(temp_diff, best_diff)
+        #         if temp_diff < best_diff:
+        #             best_diff = temp_diff
+        #             best_centroid = centroids_dict[temp]
+
+        # else: 
+        #     # no temperature for that day on file
+        #     # randomly choose??
+        #     temp = choice(list(centroids_dict.keys()))
+        #     best_centroid = centroids_dict[temp]
+
+
+        # Selection Criteria Including Stochasticity: sample best cluster
+        # TODO: sample from the cluster that is the closest temperature
+        best_sample = None
         if len(actual_temp) != 0:
             best_diff = math.inf
-            for temp in centroids_dict.keys():
+            for temp in cluster_samples.keys():
                 temp_diff = np.abs(float(temp) - actual_temp.iloc[0])
                 # print(temp_diff, best_diff)
                 if temp_diff < best_diff:
                     best_diff = temp_diff
-                    best_centroid = centroids_dict[temp]
+                    # Randomly choose a sample from the cluster
+                    # best_sample = [temp]
 
         else: 
             # no temperature for that day on file
             # randomly choose??
             temp = choice(list(centroids_dict.keys()))
             best_centroid = centroids_dict[temp]
+
 
         selected_peak = np.max(best_centroid)
         scaling_factor = peak_value / selected_peak
